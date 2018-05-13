@@ -1,20 +1,30 @@
 var busy = document.getElementById("busy");
 
-if (!localStorage.id || !localStorage.secret) {
-	localStorage.id = prompt("Enter GApp client ID", localStorage.id);
-	localStorage.secret = prompt("Enter GApp client secret", localStorage.secret);
-}
+var PATH = "drive";
+var store = {};
+var handler = {};
+["ClientId", "ClientSecret", "User", "Token", "Expiry", "AuthCode"].forEach(function(key) {
+	handler[key] = {
+		get: function() {
+			return localStorage[PATH + key];
+		},
+		set: function(value) {
+			localStorage[PATH + key] = value;
+		}
+	};
+});
+Object.defineProperties(store, handler);
 
 function expired() {
-	return !localStorage.expiry || (new Date().getTime() - localStorage.expiry >= 0);
+	return !store.Expiry || (new Date().getTime() - store.Expiry >= 0);
 }
 
 function authorize(callback) {
-	if(!expired() && window.authuser == user.value)
+	if(!expired() && store.User == user.value)
 		return callback();
 	this.callback = callback;
-	window.authuser = user.value;
-	window.open("https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/drive&client_id=" + localStorage.id + "&redirect_uri=http://127.0.0.1/drive/oauth.html&response_type=code&access_type=offline&authuser=" + (user.value || 0), "OAuthor", "width=500,height=500");
+	store.User = user.value;
+	window.open("oauth.html");
 }
 
 function callWithAuth(callback) {
@@ -35,7 +45,7 @@ function xhr(method, url, data, success, async, type, raw) {
 	if (busy) busy.style.display = "inline";
 	var xhr = new XMLHttpRequest();
 	xhr.open(method, url, async == true);
-	xhr.setRequestHeader("Authorization", "Bearer " + localStorage.token);
+	xhr.setRequestHeader("Authorization", "Bearer " + store.Token);
 	xhr.onload = function() {
 		if (this.status < 200 || this.status > 299) {
 			return this.onerror(JSON.parse(this.responseText));

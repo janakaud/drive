@@ -12,14 +12,11 @@
 </head>
 <body style="height: 100%; margin: 0px">
 <div class="control">
-	<form onsubmit="delete localStorage.expiry; authorize(function(){alert('Completed');}); return false">
-		<input id="user" value="0" size="1"/>
-		<input type="submit" value="authorize"/>
-	</form>
 	<form onsubmit="return search()">
-		<input type="button" onclick="listAll()" value="list"/>
+		<input id="user" value="0" size="1"/>
 		<input id="input" name="input"/>
 		<input type="submit" value="search"/>
+		<input type="button" onclick="listAll()" value="list"/>
 	</form>
 	<input id="limit" value="1" size="1"/>
 	<select>
@@ -39,6 +36,7 @@
 	<button onclick="altMedia(prompt('ID'), String(Date.now()))">alt-media</button>
 	<button onclick="download(prompt('ID'))">download</button>
 	<button onclick="makePublic(prompt('ID'))">public</button>
+	<button onclick="share(prompt('ID'))">share</button>
 	<button onclick="details(prompt('ID'))">details</button>
 	<label id="busy" style="display: none">wait...</label>
 </div>

@@ -77,7 +77,7 @@ function listAll() {
 function search() {
 	var q = input.value;
 	if (!q.match(/\s(contains|=|<|>|in|and|or|not|has)\s/)) {
-		q = "fullText contains '" + q + "' or name contains '" + q + "'";
+		q = "name contains '" + q + "'";
 	}
 	list(listUrl + "&q=" + q);
 	return false;
@@ -95,6 +95,7 @@ function create(type) {
 	var mimeType = "application/vnd.google-apps." + type;
 	ajax("POST", createUrl, {
 		mimeType: mimeType, 
+		parents: folder.value ? [folder.value] : undefined,
 		name: name
 	}, function(data) {
 		display([{
@@ -116,18 +117,43 @@ function del(id) {
 
 function details(id) {
 	if (!id) return;
-	ajax("GET", base + "/" + id, null, function(xhr) {
+	ajax("GET", base + "/" + id + "?fields=trashed,modifiedTime,permissions(emailAddress,role)", null, function(xhr) {
 		alert(xhr.responseText);
 	}, true, null, true);
 }
 
+function share(id) {
+	var role = prompt("Role (reader writer commenter owner organizer)", "writer");
+	if (!id || !role) {
+		return;
+	}
+
+	var spec = {role: role};
+	var target;
+	if (target = prompt("Email")) {
+		spec.type = "user";
+		spec.emailAddress = target;
+	} else if (target = prompt("Domain")) {
+		spec.type = "domain";
+		spec.domain = target;
+	} else if (confirm("Make " + role + " role public?")) {
+		spec.type = "anyone";
+	}
+
+	permit(id, spec, ["owner", "organizer", "writer"].indexOf(role) > -1 && confirm("Transfer ownership?") ?
+		"?transferOwnership=true" : "");
+}
+
 function makePublic(id) {
-	if (!id) return;
-	ajax("POST", base + "/" + id + "/permissions", {
+	permit(id, {
 		role: "reader",
-		type: "anyone",
-		value: ""
-	}, function(xhr) {
+		type: "anyone"
+	});
+}
+
+function permit(id, spec, queryParams = "") {
+	if (!id) return;
+	ajax("POST", base + "/" + id + "/permissions" + queryParams, spec, function(xhr) {
 		alert(xhr.responseText);
 	}, true, null, true);
 }
@@ -211,7 +237,7 @@ function btn(func, params, text) {
 
 function sel(opts, func, params, optParamPos, text) {
 	var head = params.splice(0, optParamPos - 1);
-	return "<select><option>" + text + "</option>" + opts.map(function(opt) {
+	return "<select><option>" + text + "</option>" + (opts || []).map(function(opt) {
 		return "<option onclick='" + func + '("' + head.concat(opt[1]).concat(params).join('","') + "\")'>" + opt[0] + "</option>";
 	}).join("") + "</select>";
 }
@@ -238,6 +264,7 @@ function display(list) {
 			sel(meta[EXPORTS], "xport", [f.id, f.name], 3, "export"),
 			btn("altMedia", [f.id, f.name], "alt-media"),
 			btn("download", [f.id], "download"),
+			btn("share", [f.id], "share"),
 			btn("makePublic", [f.id], "public"),
 			btn("details", [f.id], "details"),
 		];

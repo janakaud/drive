@@ -1,38 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta charset="utf-8"/>
+<meta charset="utf-8"/>
 </head>
 <body>
 <script src="util.js"></script>
-<script type="text/javascript">
-	var pos;
-	if ((pos = location.hash.indexOf("access_token=")) != -1) {
-		var hash = location.hash;
-		hash = hash.substring(pos + 13);
-		acToken = hash.substring(0, hash.indexOf("&"));
-		localStorage.token = acToken;
-		hash = hash.substring(hash.indexOf("expires_in=") + 11);
-		expiry = new Date().getTime() + parseInt(hash)*1000;
-		localStorage.expiry = expiry;
-		window.opener.callback();
-
-	} else if ((pos = location.search.indexOf("code=")) != -1) {
-		var search = location.search;
-		search = search.substring(pos + 5);
-		var end = search.indexOf("&");
-		code = search.substring(0, end >= 0 ? end : search.length);
-		xhr("POST", "https://www.googleapis.com/oauth2/v4/token", "code=" + code + "&client_id=" + localStorage.id + "&client_secret=" + localStorage.secret + "&redirect_uri=http://127.0.0.1/drive/oauth.html&grant_type=authorization_code", function(resp) {
-			localStorage.token = resp.access_token;
-			localStorage.expiry = new Date().getTime() + parseInt(resp.expires_in)*1000;
-			window.opener.callback();
-		}, false, "application/x-www-form-urlencoded");
-
-	} else {
-		alert("Authorization failed");
-	}
-
-	close();
+<script src="oauth.js"></script>
 </script>
 </body>
 </html>
