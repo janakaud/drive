@@ -1,8 +1,11 @@
+var SCOPE = "https://www.googleapis.com/auth/drive"
+var PATH = "drive";
+
 var host = "https://www.googleapis.com";
 var apiPath = "/drive/v3/files";
 var base = host + apiPath;
 var uploadUrl = host + "/upload" + apiPath + "?fields=id";
-var listUrl = base + "?fields=files(id,name,mimeType)";
+var listUrl = base + "?fields=files(id,name,mimeType,size)";
 var createUrl = base + "?fields=id";
 
 var _ = {
@@ -31,7 +34,7 @@ Object.entries(_).forEach(function(e) {
 });
 
 var typeMap = {
-	spreadsheet: ["docs", "spreadsheets", "htmlview", [
+	spreadsheet: ["docs", "spreadsheets", "/htmlview", [
 		["MS Excel", _.XLSX],
 		["Open Office sheet", _.ODS],
 		["PDF", _.PDF],
@@ -39,13 +42,13 @@ var typeMap = {
 		["TSV (first sheet only)", _.TSV],
 		["HTML (zipped)", _.ZIP]
 	]],
-	presentation: ["docs", "presentation", "htmlpresent", [
+	presentation: ["docs", "presentation", "/htmlpresent", [
 		["MS PowerPoint", _.PPTX],
 		["Open Office presentation", _.ODP],
 		["PDF", _.PDF],
 		["Plain text", _.TXT]
 	]],
-	document: ["docs", "document", "mobilebasic", [
+	document: ["docs", "document", "/mobilebasic", [
 		["HTML", _.HTML],
 		["HTML (zipped)", _.ZIP],
 		["Plain text", _.TXT],
@@ -55,13 +58,13 @@ var typeMap = {
 		["MS Word document", _.DOCX],
 		["EPUB", _.EPUB]
 	]],
-	folder: ["drive", "folders", "view", [
+	folder: ["drive", "drive/folders", "", [
 		["Zip", _.ZIP]
 	]],
-	script: ["script", "macros", "edit", [
+	script: ["script", "macros", "/edit", [
 		["JSON", _.JSON]
 	]],
-	drawing: ["drawing", "drive", "view", [
+	drawing: ["drawing", "drive", "/view", [
 		["JPEG", _.JPEG],
 		["PNG", _.PNG],
 		["SVG", _.SVG],
@@ -74,13 +77,12 @@ function listAll() {
 	list(listUrl);
 }
 
-function search() {
-	var q = input.value;
+function search(query) {
+	var q = query || input.value;
 	if (!q.match(/\s(contains|=|<|>|in|and|or|not|has)\s/)) {
 		q = "name contains '" + q + "'";
 	}
 	list(listUrl + "&q=" + q);
-	return false;
 }
 
 function list(url) {
@@ -117,7 +119,7 @@ function del(id) {
 
 function details(id) {
 	if (!id) return;
-	ajax("GET", base + "/" + id + "?fields=trashed,modifiedTime,permissions(emailAddress,role)", null, function(xhr) {
+	ajax("GET", base + "/" + id + "?fields=trashed,modifiedTime,permissions(emailAddress,role),size", null, function(xhr) {
 		alert(xhr.responseText);
 	}, true, null, true);
 }
@@ -177,12 +179,14 @@ function getFile(url, name) {
 		a.target = "_newtab";
 		a.download = name;
 		a.click();
-	}, true, null, true);
+	}, true, null, true, true);
 }
 
 function download(id) {
 	if (!id) return;
-	window.open("https://drive.google.com/" + id + "/uc?export=download");
+	format = prompt("Format", "pdf");
+	if (!format) return;
+	window.open("https://docs.google.com/document/export?format=" + format + "&id=" + id);
 }
 
 function uploadSimple() {
@@ -200,7 +204,8 @@ function uploadMultipart() {
 		}
 		meta += '}';
 		return ["--" + boundary, "Content-Type: application/json", "", meta, "", "--" + boundary,
-			"Content-Type: " + file.type, "", content, "--" + boundary + "--"].join("\r\n");
+			"Content-Type: " + (file.type || "text/plain") + "; charset=UTF-8",
+			"", content, "--" + boundary + "--"].join("\r\n");
 	}, "multipart/related; boundary=" + boundary);
 }
 
@@ -257,9 +262,9 @@ function display(list) {
 		f = list[i];
 		meta = typeMap[f.mimeType.substring(f.mimeType.lastIndexOf(".") + 1)] || [];
 		tds = [
-			link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + "/" + meta[VIEW], f.name), 
+			viewLink(f, meta),
 			meta[TYPE] || f.id,
-			link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + "/edit", "edit"),
+			driveLink(f, meta),
 			btn("del", [f.id], "delete"),
 			sel(meta[EXPORTS], "xport", [f.id, f.name], 3, "export"),
 			btn("altMedia", [f.id, f.name], "alt-media"),
@@ -267,8 +272,35 @@ function display(list) {
 			btn("share", [f.id], "share"),
 			btn("makePublic", [f.id], "public"),
 			btn("details", [f.id], "details"),
+			f.size,
 		];
 		trs.push("<td>" + tds.join("</td><td>") + "</td>");
 	}
 	files.innerHTML = "<tr>" + trs.join("</tr><tr>") + "</tr>";
+}
+
+function ls(id) {
+	search("'" + id + "' in parents");
+}
+
+function isFolder(meta) {
+	return meta[TYPE] == typeMap.folder[TYPE];
+}
+
+function viewLink(f, meta) {
+	if (isFolder(meta)) {
+		return "<a onclick='ls(\"" + f.id + "\"); return false;' href=''>" + f.name + "</a>";
+	}
+	return defaultLink(f, meta);
+}
+
+function defaultLink(f, meta) {
+	return link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + meta[VIEW], f.name);
+}
+
+function driveLink(f, meta) {
+	if (isFolder(meta)) {
+		return defaultLink(f, meta);
+	}
+	return link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + "/edit", "edit");
 }

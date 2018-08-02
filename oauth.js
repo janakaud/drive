@@ -1,6 +1,21 @@
 var TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token";
 var REDIRECT = "&redirect_uri=http://127.0.0.1/drive/oauth.html";
 
+var data = location.hash;
+var start = data.indexOf("state");
+if (start < 0) {
+	data = location.search;
+	start = data.indexOf("state");
+	if (start < 0) {
+		throw Error("state not found");
+	}
+}
+var end = data.indexOf("&", start);
+if (end < 0) {
+	end = data.length;
+}
+PATH = data.substring(start + 6, end);
+
 var pos;
 
 if (!store.ClientId) {
@@ -31,15 +46,15 @@ if ((pos = location.hash.indexOf("access_token=")) != -1) {		// token flow (not 
 		finish(resp.access_token, resp.expires_in);
 	}, false, "application/x-www-form-urlencoded");
 
-} else if (location.search == "" && location.hash == "") {
+} else if (location.search == "" && location.hash.match(/state=\w+/)) {
 	if (store.RefreshToken) {	// refresh access using saved refresh token
 		xhr("POST", TOKEN_URL, "refresh_token=" + store.RefreshToken + "&client_id=" +
 			store.ClientId + "&client_secret=" + store.ClientSecret + "&grant_type=refresh_token", function(resp) {
 			finish(resp.access_token, resp.expires_in);
 		}, false, "application/x-www-form-urlencoded");
 	} else {	// init auth
-		location.href = "https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.googleapis.com/auth/drive&client_id=" +
-		store.ClientId + REDIRECT + "&response_type=code&access_type=offline&authuser=" + (store.User || 0),
+		location.href = "https://accounts.google.com/o/oauth2/v2/auth?scope=" + store.Scope + "&client_id=" +
+		store.ClientId + REDIRECT + "&state=" + PATH + "&response_type=code&access_type=offline&authuser=" + (store.User || 0),
 		"OAuthor", "width=500,height=500";
 	}
 

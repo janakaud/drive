@@ -1,9 +1,8 @@
 var busy = document.getElementById("busy");
 
-var PATH = "drive";
 var store = {};
 var handler = {};
-["ClientId", "ClientSecret", "User", "Token", "Expiry", "AuthCode"].forEach(function(key) {
+["ClientId", "ClientSecret", "User", "Token", "Expiry", "AuthCode", "Scope"].forEach(function(key) {
 	handler[key] = {
 		get: function() {
 			return localStorage[PATH + key];
@@ -16,15 +15,16 @@ var handler = {};
 Object.defineProperties(store, handler);
 
 function expired() {
-	return !store.Expiry || (new Date().getTime() - store.Expiry >= 0);
+	return !store.Expiry || (new Date().getTime() - store.Expiry >= 0) || store.User != user.value;
 }
 
 function authorize(callback) {
-	if(!expired() && store.User == user.value)
+	if (!expired())
 		return callback();
 	this.callback = callback;
+	store.Scope = SCOPE;
 	store.User = user.value;
-	window.open("oauth.html");
+	window.open("oauth.html#state=" + PATH);
 }
 
 function callWithAuth(callback) {
@@ -34,35 +34,44 @@ function callWithAuth(callback) {
 		callback();
 }
 
-function ajax(method, url, data, success, async, type, raw) {
+function ajax(method, url, data, success, async, type, raw, binary) {
 	callWithAuth(function() {
-		xhr(method, url, data, success, async, type, raw);
+		xhr(method, url, data, success, async, type, raw, binary);
 	});
 }
 	
-function xhr(method, url, data, success, async, type, raw) {
+function xhr(method, url, data, success, async, type, raw, binary) {
 	//alert(method + " " + url + " " + JSON.stringify(data));
 	if (busy) busy.style.display = "inline";
 	var xhr = new XMLHttpRequest();
 	xhr.open(method, url, async == true);
+	if (binary)
+		xhr.responseType = "arraybuffer";
 	xhr.setRequestHeader("Authorization", "Bearer " + store.Token);
 	xhr.onload = function() {
 		if (this.status < 200 || this.status > 299) {
 			return this.onerror(JSON.parse(this.responseText));
 		}
-		success(this.responseText.length == 0 ? null : raw ? this : JSON.parse(this.responseText));
+		success(raw ? this :
+			this.responseText.length == 0 ? null : JSON.parse(this.responseText));
 		if (busy) busy.style.display = "none";
 	};
-	xhr.onerror = function(msg) {
-		alert(JSON.stringify(msg, undefined, 2));
-		if (busy) busy.style.display = "none";
-	};
-	if (data) {
-		xhr.setRequestHeader("Content-Type", type || "application/json");
-		xhr.send(type ? data : JSON.stringify(data));
-	} else {
-		xhr.send(null);
+	xhr.onerror = xhrErr;
+	try {
+		if (data) {
+			xhr.setRequestHeader("Content-Type", type || "application/json");
+			xhr.send(type ? data : JSON.stringify(data));
+		} else {
+			xhr.send(null);
+		}
+	} catch (e) {
+		xhrErr(e);
 	}
+}
+
+function xhrErr(err) {
+	alert(JSON.stringify(err, undefined, 2));
+	if (busy) busy.style.display = "none";
 }
 
 window.onerror = function(e) {

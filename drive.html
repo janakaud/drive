@@ -12,13 +12,11 @@
 </head>
 <body style="height: 100%; margin: 0px">
 <div class="control">
-	<form onsubmit="return search()">
-		<input id="user" value="0" size="1"/>
-		<input id="input" name="input"/>
-		<input type="submit" value="search"/>
-		<input type="button" onclick="listAll()" value="list"/>
-	</form>
-	<input id="limit" value="1" size="1"/>
+	<input id="user" placeholder="uid" value="0" size="1" maxlength="1"/>
+	<input id="input" placeholder="query"/>
+	<button onclick="search()">search</button>
+	<button onclick="listAll()">list</button>
+	<input id="limit" placeholder="limit" value="1" size="1"/>
 	<select>
 		<option>create</option>
 		<option onclick="create('folder')">folder</option>
@@ -27,8 +25,7 @@
 		<option onclick="create('script')">script</option>
 		<option onclick="create('presentation')">presentation</option>
 	</select>
-	<label>parent:</label>
-	<input id="folder"/>
+	<input id="folder" placeholder="upload-dir-id"/>
 	<input id="picker" type="file"/>
 	<button onclick="uploadMultipart()">upload</button>
 	<button onclick="del(prompt('ID'))">delete</button>
