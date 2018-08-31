@@ -73,6 +73,8 @@ var typeMap = {
 };
 var SITE = 0, TYPE = 1, VIEW = 2, EXPORTS = 3;
 
+var dirPath = [];
+
 function listAll() {
 	list(listUrl);
 }
@@ -81,6 +83,9 @@ function search(query) {
 	var q = query || input.value;
 	if (!q.match(/\s(contains|=|<|>|in|and|or|not|has)\s/)) {
 		q = "name contains '" + q + "'";
+	}
+	if (!query) {
+		dirPath = [];
 	}
 	list(listUrl + "&q=" + q);
 }
@@ -277,9 +282,13 @@ function display(list) {
 		trs.push("<td>" + tds.join("</td><td>") + "</td>");
 	}
 	files.innerHTML = "<tr>" + trs.join("</tr><tr>") + "</tr>";
+	breadcrumb.innerHTML = dirPath.map(function(id) {
+		return folderLink(id, id);
+	}).join(" / ");
 }
 
 function ls(id) {
+	dirPath.push(id);
 	search("'" + id + "' in parents");
 }
 
@@ -289,9 +298,13 @@ function isFolder(meta) {
 
 function viewLink(f, meta) {
 	if (isFolder(meta)) {
-		return "<a onclick='ls(\"" + f.id + "\"); return false;' href=''>" + f.name + "</a>";
+		return folderLink(f.id, f.name);
 	}
 	return defaultLink(f, meta);
+}
+
+function folderLink(id, name) {
+	return "<a onclick='ls(\"" + id + "\"); return false;' href=''>" + name + "</a>";
 }
 
 function defaultLink(f, meta) {
