@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>Gmail</title>
+</head>
+<body style="height: 100%; margin: 0px">
+	<input id="user" placeholder="uid" size="1" maxlength="1" value="3"/>
+	<button onclick="authorize(function(){alert('Completed');})">Authorize</button>
+	<br/>
+	<input id="from" placeholder="sender@mail.com"/>
+	<input id="to" placeholder="to1@mail.com,to2@mail.com"/>
+	<input id="cc" placeholder="cc1@mail.com,cc2@mail.com"/>
+	<input id="bcc" placeholder="bcc1@mail.com,bcc2@mail.com"/>
+	<br/>
+	<input id="subject" placeholder="subject"/>
+	<br/>
+	<textarea id="body" placeholder="body" rows="10" cols="50"></textarea>
+	<button onclick="send()">Send</button>
+	<script src="util.js"></script>
+</body>
+<script>
+var SCOPE = "https://www.googleapis.com/auth/gmail.send";
+var PATH = "gmail";
+var BASE_URL = "https://www.googleapis.com/gmail/v1/users/me/messages/send";
+
+function send() {
+	ajax("post", BASE_URL + "?fields=", {raw: btoa(`From: ${from.value}\r
+To: ${to.value}\r
+Cc: ${cc.value}\r
+Bcc: ${bcc.value}\r
+Subject: ${subject.value}\r
+Date: ${new Date().toISOString()}\r
+\r
+${body.value}`)}, function(data) {
+		console.log(data);
+	});
+}
+</script>
+</html>
