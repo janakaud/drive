@@ -114,16 +114,31 @@ function create(type) {
 }
 
 function del(id) {
-	if (!id) return;
-	if (confirm("Are you sure you want to delete " + id + "?")) {
-		ajax("DELETE", base + "/" + id, null, function(data) {
-			alert("File " + id + " deleted");
-		}, true);
+	if (!id) {
+		return;
 	}
+	if (!confirm("Are you sure you want to delete " + id + "?")) {
+		return;
+	}
+
+	ajax("DELETE", base + "/" + id, null, function(data) {
+		alert("File " + id + " deleted");
+	}, true);
+}
+
+function copy(id) {
+	if (!id) {
+		return;
+	}
+	ajax("POST", base + "/" + id + "/copy", null, function(xhr) {
+		alert(xhr.responseText);
+	}, true, undefined, true);
 }
 
 function details(id) {
-	if (!id) return;
+	if (!id) {
+		return;
+	}
 	ajax("GET", base + "/" + id + "?fields=trashed,modifiedTime,permissions(emailAddress,role),size", null, function(xhr) {
 		alert(xhr.responseText);
 	}, true, null, true);
@@ -159,19 +174,25 @@ function makePublic(id) {
 }
 
 function permit(id, spec, queryParams = "") {
-	if (!id) return;
+	if (!id) {
+		return;
+	}
 	ajax("POST", base + "/" + id + "/permissions" + queryParams, spec, function(xhr) {
 		alert(xhr.responseText);
-	}, true, null, true);
+	}, true, undefined, true);
 }
 
 function altMedia(id, name) {
-	if (!id) return;
+	if (!id) {
+		return;
+	}
 	getFile(base + "/" + id + "?alt=media", name);
 }
 
 function xport(id, name, mimeType) {
-	if (!id) return;
+	if (!id) {
+		return;
+	}
 	getFile(base + "/" + id + "/export?mimeType=" + encodeURIComponent(mimeType), suffixExt(name, mimeType));
 }
 
@@ -188,9 +209,14 @@ function getFile(url, name) {
 }
 
 function download(id) {
-	if (!id) return;
+	if (!id) {
+		return;
+	}
 	format = prompt("Format", "pdf");
-	if (!format) return;
+	if (!format) {
+		return;
+	}
+
 	window.open("https://docs.google.com/document/export?format=" + format + "&id=" + id);
 }
 
@@ -201,17 +227,17 @@ function uploadSimple() {
 }
 
 function uploadMultipart() {
-	boundary = "Z";
 	upload("multipart", function(file, content) {
-		meta = '{"name":"' + file.name + '"';
+		blob = new Blob([file]);
+		meta = {name: file.name, mimeType: file.type};
 		if (!isEmpty(folder.value)) {
-			meta += ',"parents":["' + folder.value + '"]';
+			meta.parents = [folder.value];
 		}
-		meta += '}';
-		return ["--" + boundary, "Content-Type: application/json", "", meta, "", "--" + boundary,
-			"Content-Type: " + (file.type || "text/plain") + "; charset=UTF-8",
-			"", content, "--" + boundary + "--"].join("\r\n");
-	}, "multipart/related; boundary=" + boundary);
+		var payload = new FormData();
+		payload.append('metadata', new Blob([JSON.stringify(meta)], {type: 'application/json'}));
+		payload.append('file', blob);
+		return payload;
+	}, null);
 }
 
 function upload(type, transform, contentType) {
@@ -230,7 +256,7 @@ function upload(type, transform, contentType) {
 			}]);
 		}, false, contentType);
 	};
-	reader.readAsBinaryString(file);
+	reader.readAsArrayBuffer(file);
 }
 
 function header(xhr, key) {
@@ -271,6 +297,7 @@ function display(list) {
 			meta[TYPE] || f.id,
 			driveLink(f, meta),
 			btn("del", [f.id], "delete"),
+			btn("copy", [f.id], "copy"),
 			sel(meta[EXPORTS], "xport", [f.id, f.name], 3, "export"),
 			btn("altMedia", [f.id, f.name], "alt-media"),
 			btn("download", [f.id], "download"),
@@ -282,13 +309,17 @@ function display(list) {
 		trs.push("<td>" + tds.join("</td><td>") + "</td>");
 	}
 	files.innerHTML = "<tr>" + trs.join("</tr><tr>") + "</tr>";
-	breadcrumb.innerHTML = dirPath.map(function(id) {
-		return folderLink(id, id);
+	breadcrumb.innerHTML = dirPath.map(function({id, name}) {
+		return folderLink(id, name);
 	}).join(" / ");
 }
 
-function ls(id) {
-	dirPath.push(id);
+function ls(id, name) {
+	if (!dirPath.some(function(dir) {
+		return dir.id == id;
+	})) {
+		dirPath.push({id, name});
+	}
 	search("'" + id + "' in parents");
 }
 
@@ -304,16 +335,20 @@ function viewLink(f, meta) {
 }
 
 function folderLink(id, name) {
-	return "<a onclick='ls(\"" + id + "\"); return false;' href=''>" + name + "</a>";
+	return "<a onclick='ls(\"" + id + "\", \"" + name + "\"); return false;' href=''>" + name + "</a>";
 }
 
 function defaultLink(f, meta) {
-	return link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + meta[VIEW], f.name);
+	return link(fileUrl(f, meta) + meta[VIEW], f.name);
 }
 
 function driveLink(f, meta) {
 	if (isFolder(meta)) {
 		return defaultLink(f, meta);
 	}
-	return link("https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/d/" + f.id + "/edit", "edit");
+	return link(fileUrl(f, meta) + "/edit", "edit");
+}
+
+function fileUrl(f, meta) {
+	return "https://" + meta[SITE] + ".google.com/" + meta[TYPE] + "/u/" + user.value + "/d/" + f.id;
 }
