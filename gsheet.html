@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>GSheet</title>
+</head>
+<body>
+<div>
+	<input id="user" placeholder="user" value="1" size="1" maxlength="1"/>
+	<input id="id" placeholder="sheet ID"/>
+	<button onclick="listSheets()">list:NA</button>
+	<select id="sheets"/>
+	<input id="sheet" placeholder="sheet name"/>
+	<input id="range" placeholder="cell range" value="A:Z"/>
+	<button onclick="load()">load</button>
+	<button onclick="save()">save</button>
+</div>
+<table id="grid"/>
+<script src="util.js"></script>
+<script type="text/javascript">
+const SCOPE = "https://www.googleapis.com/auth/drive"
+const PATH = "gsheet";
+const base = "https://sheets.googleapis.com/v4/spreadsheets/";
+
+function load() {
+	let sRange = range.value || "A:Z";
+	let dim = sRange.split(":");
+	if (dim.length == 1) {	// e.g. "A1"
+		dim = [sRange, sRange];
+	}
+
+	// find full cell range sizes; TODO handle AA etc
+	let [_1, c1, r1] = dim[0].match(/([A-Z]*)(\d*)/);
+	let [_2, c2, r2] = dim[1].match(/([A-Z]*)(\d*)/);
+	let w = (c2 || "Z").charCodeAt(0) - (c1 || "A").charCodeAt(0) + 1;
+	let h = (r2 || 100) - (r1 || 1) + 1;
+
+	// render all as table
+	ajax("GET", base + id.value + "/values/" + sheet.value + "!" + sRange + "?fields=values", null, function(data) {
+		let cells = data.values || [[]];
+		let out = "<tbody>";
+		for (let r = 0; r < h; r++) {
+			out += "<tr>";
+			for (let c = 0; c < w; c++) {
+				let orig = (cells[r] || [])[c] || "";
+				out += "<td><input orig='" + orig + "' value='" + orig + "'></input></td>";
+			}
+			out += "</tr>";
+		}
+		out += "</tbody>";
+		grid.innerHTML = out;
+	});
+}
+
+// trim array by removing trailing "null" entries
+function trim(row, cellMatch) {
+	let last = row.slice().reverse().findIndex(cellMatch);
+	row.splice(last < 0 ? 0 : row.length - last);
+}
+
+function save() {
+	if (!id.value || !sheet.value) {
+		alert("Please enter document ID and sheet name");
+		return;
+	}
+	let sRange = range.value || "A:Z";
+
+	let uData = [];
+	for (let r = 0; r < grid.rows.length; r++) {
+		let row = grid.rows[r].cells;
+		let uRow = [];
+		for (let c = 0; c < row.length; c++) {
+			// add if changed
+			let cell = row[c].children[0];
+			let value = cell.value;
+			let orig = cell.getAttribute("orig");
+			uRow.push(orig !== value ? value : null);
+		}
+
+		trim(uRow, cell => cell !== null);
+		uData.push(uRow);
+	}
+	trim(uData, cell => !(cell instanceof Array) || cell.length > 0);
+
+	ajax("PUT", base + id.value + "/values/" + sheet.value + "!" + sRange + "?valueInputOption=USER_ENTERED&fields=updatedCells",
+	{values: uData}, function(data) {
+		alert("Updated: " + data.updatedCells);
+		// mark all cells as clean
+		for (let r = 0; r < grid.rows.length; r++) {
+			let row = grid.rows[r].cells;
+			for (let c = 0; c < row.length; c++) {
+				let cell = row[c].children[0];
+				cell.setAttribute("orig", cell.value);
+			}
+		}
+	});
+}
+</script>
+</body>
+</html>
