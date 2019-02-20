@@ -8,9 +8,12 @@
 <div>
 	<input id="user" placeholder="user" value="1" size="1" maxlength="1"/>
 	<input id="id" placeholder="sheet ID"/>
-	<button onclick="listSheets()">list:NA</button>
+	<button onclick="listSheets()">list</button>
 	<select id="sheets"/>
 	<input id="sheet" placeholder="sheet name"/>
+	<button onclick="newSheet()">new</button>
+	<button onclick="copySheet()">copy</button>
+	<button onclick="deleteSheet()">delete</button>
 	<input id="range" placeholder="cell range" value="A:Z"/>
 	<button onclick="load()">load</button>
 	<button onclick="save()">save</button>
@@ -21,6 +24,78 @@
 const SCOPE = "https://www.googleapis.com/auth/drive"
 const PATH = "gsheet";
 const base = "https://sheets.googleapis.com/v4/spreadsheets/";
+
+sheets.onchange = function() {
+	sheet.value = sheets.selectedOptions[0].text;
+}
+
+function listSheets() {
+	if (id.value.match(/\.google\.com\/(spreadsheet|open\?|drive)/)) {
+		id.value = id.value.match(/[^/?]{20,}/);
+	}
+	ajax("GET", base + id.value + "?fields=sheets.properties(title,sheetId)", null, function(data) {
+		sheets.innerHTML = option("Select sheet", "");
+		for (let i in data.sheets) {
+			let props = data.sheets[i].properties;
+			sheets.innerHTML += option(props.title, props.sheetId);
+		}
+	});
+}
+
+function newSheet() {
+	if (!sheet.value) {
+		return alert("Please enter a name for the new sheet");
+	}
+
+	batch({
+		addSheet: {
+			properties: {
+				title: sheet.value
+			}
+		}
+	}, "addSheet.properties.sheetId", function(data) {
+		sheets.innerHTML += option(sheet.value, data.replies[0].addSheet.properties.sheetId);
+	});
+}
+
+function copySheet() {
+	if (!sheets.value) {
+		return alert("Please select a sheet");
+	}
+	if (!sheet.value) {
+		return alert("Please enter a name for the destination sheet");
+	}
+
+	batch({
+		duplicateSheet: {
+			newSheetName: sheet.value,
+			sourceSheetId: sheets.value
+		}
+	}, "duplicateSheet.properties.sheetId", function(data) {
+		sheets.innerHTML += option(sheet.value, data.replies[0].duplicateSheet.properties.sheetId);
+	});
+}
+
+function deleteSheet() {
+	if (!sheets.value) {
+		return alert("Please select a sheet");
+	}
+	if (!confirm("Are you sure you want to delete " + sheet.value + " (" + sheets.value + ")?")) {
+		return;
+	}
+
+	batch({
+		deleteSheet: {
+			sheetId: sheets.value
+		}
+	}, "", function(data) {
+		alert(sheets.value + " deleted");
+	});
+}
+
+function batch(req, fields, callback) {
+	ajax("POST", base + id.value + ":batchUpdate?fields=" + (fields ? "replies." + fields : ""), {requests: [req]} , callback);
+}
 
 function load() {
 	let sRange = range.value || "A:Z";
@@ -94,6 +169,10 @@ function save() {
 			}
 		}
 	});
+}
+
+function option(name, value) {
+	return "<option value='" + value + "'>" + name + "</option>";
 }
 </script>
 </body>

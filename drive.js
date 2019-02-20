@@ -81,6 +81,15 @@ function listAll() {
 
 function search(query) {
 	var q = query || input.value;
+	if (q.match(/\.google\.com\/(document|spreadsheet|presentation|macros|open\?|drive)/)) {
+		ajax("GET", base + "/" + q.match(/[^/?]{20,}/), null, function(data) {
+			display([data]);
+		});
+		return;
+	}
+	if (q.match(/\/drive\/folders\//)) {
+		q = "'" + q.match(/[^/?]{20,}/) + "' in parents";
+	}
 	if (!q.match(/\s(contains|=|<|>|in|and|or|not|has)\s/)) {
 		q = "name contains '" + q + "'";
 	}
@@ -131,6 +140,16 @@ function copy(id) {
 		return;
 	}
 	ajax("POST", base + "/" + id + "/copy", null, function(xhr) {
+		alert(xhr.responseText);
+	}, true, undefined, true);
+}
+
+function move(id) {
+	var newParent = prompt("Enter new parent dir ID");
+	if (!id || !newParent) {
+		return;
+	}
+	ajax("PATCH", base + "/" + id, {addParents: [newParent]}, function(xhr) {
 		alert(xhr.responseText);
 	}, true, undefined, true);
 }
@@ -298,6 +317,7 @@ function display(list) {
 			driveLink(f, meta),
 			btn("del", [f.id], "delete"),
 			btn("copy", [f.id], "copy"),
+			btn("move", [f.id], "move"),
 			sel(meta[EXPORTS], "xport", [f.id, f.name], 3, "export"),
 			btn("altMedia", [f.id, f.name], "alt-media"),
 			btn("download", [f.id], "download"),
