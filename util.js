@@ -6,10 +6,10 @@ var handler = {};
 ["ClientId", "ClientSecret", "User", "Token", "Expiry", "AuthCode", "Scope"].forEach(function(key) {
 	handler[key] = {
 		get: function() {
-			return localStorage[PATH + key];
+			return localStorage[SCOPE + " " + key];
 		},
 		set: function(value) {
-			localStorage[PATH + key] = value;
+			localStorage[SCOPE + " " + key] = value;
 		}
 	};
 });
@@ -26,7 +26,7 @@ function authorize(callback) {
 	this.callback = callback;
 	store.Scope = SCOPE;
 	store.User = user.value;
-	window.open("oauth.html#state=" + PATH);
+	window.open("oauth.html#state=" + SCOPE);
 }
 
 function callWithAuth(callback) {

@@ -1,5 +1,4 @@
 var SCOPE = "https://www.googleapis.com/auth/script.projects";
-var PATH = "script";
 
 var url = "https://script.googleapis.com/v1/projects?fields=scriptId";
 

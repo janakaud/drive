@@ -1,5 +1,4 @@
 var SCOPE = "https://www.googleapis.com/auth/drive"
-var PATH = "drive";
 
 var host = "https://www.googleapis.com";
 var apiPath = "/drive/v3/files";
