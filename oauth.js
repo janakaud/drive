@@ -14,7 +14,7 @@ var end = data.indexOf("&", start);
 if (end < 0) {
 	end = data.length;
 }
-SCOPE = data.substring(start + 6, end);
+SCOPE = decodeURIComponent(data.substring(start + 6, end));
 
 var pos;
 
@@ -54,8 +54,7 @@ if ((pos = location.hash.indexOf("access_token=")) != -1) {		// token flow (not 
 		}, false, "application/x-www-form-urlencoded");
 	} else {	// init auth
 		location.href = "https://accounts.google.com/o/oauth2/v2/auth?scope=" + store.Scope + "&client_id=" +
-		store.ClientId + REDIRECT + "&state=" + SCOPE + "&response_type=code&access_type=offline&authuser=" + (store.User || 0),
-		"OAuthor", "width=500,height=500";
+		store.ClientId + REDIRECT + "&state=" + SCOPE + "&response_type=code&access_type=offline&authuser=" + (store.User || 0);
 	}
 
 } else {

@@ -3,7 +3,8 @@ var decoder = new TextDecoder();
 
 var store = {};
 var handler = {};
-["ClientId", "ClientSecret", "User", "Token", "Expiry", "AuthCode", "Scope"].forEach(function(key) {
+["ClientId", "ClientSecret", "User", "Scope",
+"Token", "Expiry", "AuthCode"].forEach(function(key) {
 	handler[key] = {
 		get: function() {
 			return localStorage[SCOPE + " " + key];
@@ -13,6 +14,14 @@ var handler = {};
 		}
 	};
 });
+handler.RefreshToken = {
+	get: function() {
+		return localStorage[`${SCOPE} RefreshToken ${store.User}`];
+	},
+	set: function(value) {
+		localStorage[`${SCOPE} RefreshToken ${store.User}`] = value;
+	}
+};
 Object.defineProperties(store, handler);
 
 function expired() {
