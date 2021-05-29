@@ -6,7 +6,7 @@
 </head>
 <body>
 <div>
-	<input id="user" placeholder="user" value="1" size="1" maxlength="1"/>
+	<input id="user" placeholder="user" value="0" size="1" maxlength="1"/>
 	<input id="doc" placeholder="document ID"/>
 	<button onclick="listSheets()">list</button>
 	<select id="sheets"></select>
@@ -14,15 +14,25 @@
 	<button onclick="newSheet()">new</button>
 	<button onclick="copySheet()">copy</button>
 	<button onclick="deleteSheet()">delete</button>
-	<input id="range" placeholder="cell range" value="A:Z"/>
+	<input id="range" placeholder="cell range" value="A:Z" size="8"/>
 	<button onclick="load()">load</button>
 	<button onclick="save()">save</button>
+	<input id="insertAt" placeholder="insert rows at" value="1" size="3"/>
+	<button onclick="insertRows()">insert</button>
+	<button onclick="deleteRows()">delete</button>
+	<button onclick="download()">export</button>
 </div>
 <table id="grid"></table>
 <script src="util.js"></script>
 <script type="text/javascript">
 const SCOPE = "https://www.googleapis.com/auth/drive"
 const base = "https://sheets.googleapis.com/v4/spreadsheets/";
+
+const INS = 1;
+let rowDiff = [];
+
+doc.value = localStorage.doc;
+sheet.value = localStorage.sheet;
 
 sheets.onchange = function() {
 	sheet.value = sheets.selectedOptions[0].text;
@@ -49,7 +59,7 @@ function newSheet() {
 				title: sheet.value
 			}
 		}
-	}, "addSheet.properties.sheetId", function(data) {
+	}, "replies.addSheet.properties.sheetId", function(data) {
 		sheets.innerHTML += option(sheet.value, data.replies[0].addSheet.properties.sheetId);
 	});
 }
@@ -67,7 +77,7 @@ function copySheet() {
 			newSheetName: sheet.value,
 			sourceSheetId: sheets.value
 		}
-	}, "duplicateSheet.properties.sheetId", function(data) {
+	}, "replies.duplicateSheet.properties.sheetId", function(data) {
 		sheets.innerHTML += option(sheet.value, data.replies[0].duplicateSheet.properties.sheetId);
 	});
 }
@@ -89,11 +99,50 @@ function deleteSheet() {
 	});
 }
 
+function insertRows() {
+	let start = parseInt(insertAt.value);
+	let len = parseInt(prompt("Row count", 1));
+	if (!start || !len || start < 0) return;
+	rowDiff.push([start, len, INS]);
+	let beforeRow = grid.rows[start - 1] || {cells: {length: 10}};
+	for (let i = 0; i < len; i++) {
+		let row = grid.insertRow(start - 1);
+		for (let c = 0; c < beforeRow.cells.length; c++) {
+			row.insertCell().innerHTML = `<input orig='' title='${String.fromCharCode(c + 65)}${start + (len - i - 1)}'></input>`;
+		}
+	}
+
+	let rangeParts = range.value.match(/(\w+:[A-Z]+)(\d+)/) || [, "A1:H", 1];
+	range.value = `${rangeParts[1]}${parseInt(rangeParts[2]) + len}`;
+}
+
+function deleteRows() {
+	let start = parseInt(insertAt.value);
+	let len = parseInt(prompt("Row count", 1));
+	if (!start || !len || start < 0) return;
+	rowDiff.push([start, len, !INS]);
+	for (let i = 0; i < len; i++) {
+		grid.deleteRow(start - 1);
+	}
+}
+
+function download() {
+	window.location.href = `data:text/csv;base64,${
+	btoa(Array.from(grid.rows).map(r => Array.from(r.cells).map(c => c.children[0].value).join(",")).join("\n"))}`;
+}
+
 function batch(req, fields, callback) {
-	ajax("POST", base + id() + ":batchUpdate?fields=" + (fields ? "replies." + fields : ""), {requests: [req]} , callback);
+	batchAll([req], fields, callback);
+}
+
+function batchAll(reqs, fields, callback) {
+	ajax("POST", base + id() + ":batchUpdate?fields=" + fields, {requests: reqs}, callback);
 }
 
 function load() {
+	localStorage.doc = doc.value;
+	localStorage.sheet = sheet.value;
+
 	let sRange = range.value || "A:Z";
 	let dim = sRange.split(":");
 	if (dim.length == 1) {	// e.g. "A1"
@@ -107,14 +156,15 @@ function load() {
 	let h = (r2 || 100) - (r1 || 1) + 1;
 
 	// render all as table
-	ajax("GET", base + id() + "/values/" + sheet.value + "!" + sRange + "?fields=values", null, function(data) {
+	ajax("GET", base + id() + "/values/" + encodeURIComponent(sheet.value) + "!" + sRange + "?fields=values", null, function(data) {
 		let cells = data.values || [[]];
 		let out = "<tbody>";
 		for (let r = 0; r < h; r++) {
 			out += "<tr>";
 			for (let c = 0; c < w; c++) {
-				let orig = (cells[r] || [])[c] || "";
-				out += "<td><input orig='" + orig + "' value='" + orig + "'></input></td>";
+				let orig = ((cells[r] || [])[c] || "").replaceAll("'", "&#39;");
+				let tag = orig.indexOf("\n") > 0 ? "textarea" : "input";
+				out += `<td><${tag} orig='${orig}' title='${String.fromCharCode(c + 65)}${r + 1}' value='${orig}'></${tag}></td>`;
 			}
 			out += "</tr>";
 		}
@@ -130,6 +180,31 @@ function trim(row, cellMatch) {
 }
 
 function save() {
+	if (rowDiff.length == 0) {
+		return saveData();
+	}
+
+	let diffs = [];
+	rowDiff.forEach(d => {
+		let start = d[0] - 1;
+		diffs.push({
+			[`${d[2] == INS ? "insert" : "delete"}Dimension`]: { range: {
+				sheetId: (sheets.selectedOptions[0] || {}).value,
+				dimension: "ROWS",
+				startIndex: start,
+				endIndex: start + d[1],
+			}}
+		});
+	});
+
+	batchAll(diffs, "replies", function(data) {
+		alert(`Rows updated\n${JSON.stringify(data)}`);
+		rowDiff = [];
+		return saveData();
+	});
+}
+
+function saveData() {
 	if (!id() || !sheet.value) {
 		alert("Please enter document ID and sheet name");
 		return;
@@ -153,7 +228,12 @@ function save() {
 	}
 	trim(uData, cell => !(cell instanceof Array) || cell.length > 0);
 
-	ajax("PUT", base + id() + "/values/" + sheet.value + "!" + sRange + "?valueInputOption=USER_ENTERED&fields=updatedCells",
+	if (uData.length == 0) {
+		alert("Nothing to save");
+		return;
+	}
+
+	ajax("PUT", base + id() + "/values/" + encodeURIComponent(sheet.value) + "!" + sRange + "?valueInputOption=USER_ENTERED&fields=updatedCells",
 	{values: uData}, function(data) {
 		alert("Updated: " + data.updatedCells);
 		// mark all cells as clean
