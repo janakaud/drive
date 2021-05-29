@@ -16,7 +16,7 @@
 	<input id="input" placeholder="query"/>
 	<button onclick="search()">search</button>
 	<button onclick="listAll()">list</button>
-	<input id="limit" placeholder="limit" value="1" size="1"/>
+	<input id="limit" placeholder="limit" value="9" size="1"/>
 	<select>
 		<option>create</option>
 		<option onclick="create('folder')">folder</option>
@@ -28,13 +28,14 @@
 	<input id="folder" placeholder="upload-dir-id"/>
 	<input id="picker" type="file"/>
 	<button onclick="uploadMultipart()">upload</button>
-	<button onclick="del(prompt('ID'))">delete</button>
-	<button onclick="xport(prompt('ID'), String(Date.now()), prompt('mimeType'))">export</button>
-	<button onclick="altMedia(prompt('ID'), String(Date.now()))">alt-media</button>
-	<button onclick="download(prompt('ID'))">download</button>
-	<button onclick="makePublic(prompt('ID'))">public</button>
-	<button onclick="share(prompt('ID'))">share</button>
-	<button onclick="details(prompt('ID'))">details</button>
+	<button onclick="del(fid())">delete</button>
+	<button onclick="xport(fid(), String(Date.now()), prompt('mimeType'))">export</button>
+	<button onclick="altMedia(fid(), String(Date.now()))">alt-media</button>
+	<button onclick="download(fid())">download</button>
+	<button onclick="makePublic(fid())">public</button>
+	<button onclick="share(fid())">share</button>
+	<button onclick="rename(fid())">rename</button>
+	<button onclick="details(fid())">details</button>
 	<label id="busy" style="display: none">wait...</label>
 </div>
 <div class="remainder">

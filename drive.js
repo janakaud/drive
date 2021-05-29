@@ -74,17 +74,26 @@ var SITE = 0, TYPE = 1, VIEW = 2, EXPORTS = 3;
 
 var dirPath = [];
 
+function fid() {
+	var q = input.value || prompt("ID/URL");
+	return q.indexOf(' ') < 0 && q.match(/[^ /?]{20,}/);
+}
+
 function listAll() {
 	list(listUrl);
 }
 
 function search(query) {
-	var q = query || input.value;
-	if (q.match(/\.google\.com\/(document|spreadsheet|presentation|macros|open\?|drive)/)) {
-		ajax("GET", base + "/" + q.match(/[^/?]{20,}/), null, function(data) {
-			display([data]);
-		});
-		return;
+	var q = query;
+	if (!q) {
+		var inId = fid();
+		if (inId) {
+			ajax("GET", base + "/" + inId, null, function(data) {
+				display([data]);
+			});
+			return;
+		}
+		q = input.value;
 	}
 	if (q.match(/\/drive\/folders\//)) {
 		q = "'" + q.match(/[^/?]{20,}/) + "' in parents";
@@ -149,6 +158,16 @@ function move(id) {
 		return;
 	}
 	ajax("PATCH", base + "/" + id, {addParents: [newParent]}, function(xhr) {
+		alert(xhr.responseText);
+	}, true, undefined, true);
+}
+
+function rename(id) {
+	var newName = prompt("Enter new name");
+	if (!id || !newName) {
+		return;
+	}
+	ajax("PATCH", base + "/" + id, {name: [newName]}, function(xhr) {
 		alert(xhr.responseText);
 	}, true, undefined, true);
 }
@@ -322,6 +341,7 @@ function display(list) {
 			btn("download", [f.id], "download"),
 			btn("share", [f.id], "share"),
 			btn("makePublic", [f.id], "public"),
+			btn("rename", [f.id], "rename"),
 			btn("details", [f.id], "details"),
 			f.size,
 		];
@@ -354,7 +374,7 @@ function viewLink(f, meta) {
 }
 
 function folderLink(id, name) {
-	return "<a onclick='ls(\"" + id + "\", \"" + name + "\"); return false;' href=''>" + name + "</a>";
+	return "<a onclick='ls(\"" + id.replace("'", "") + "\", \"" + name + "\"); return false;' href=''>" + name + "</a>";
 }
 
 function defaultLink(f, meta) {
