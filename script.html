@@ -9,10 +9,16 @@
 	<input id="user" placeholder="uid" size="1" maxlength="1"/>
 	<input id="title" placeholder="title"/>
 	<input id="parent" placeholder="parent"/>
-	<button onclick="search()">search</button>
+	<button onclick="search()" disabled>search</button>
 	<button onclick="create()">create</button>
+	<input id="id" placeholder="id/url"/>
+	<button onclick="load()">load</button>
+	<button onclick="save()">save</button>
+	<button onclick="listDeployments()">deployments</button>
+	<button onclick="listProcesses()">processes</button>
 	<label id="busy" style="display: none">wait...</label>
 </div>
+<textarea id="code"></textarea>
 <script src="util.js"></script>
 <script src="script.js"></script>
 </body>
