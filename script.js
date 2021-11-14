@@ -30,6 +30,34 @@ function save() {
 	})});
 }
 
+// needs deploy as API executable
+function run() {
+	var fnName = prompt("Function name");
+	if (!fnName) return;
+	var devMode = confirm("Dev mode?");
+	_alert("POST", `${V1}/scripts/${_id()}:run`, {"function": fnName, devMode});
+}
+
+function deploy() {
+	var versionNumber = parseInt(prompt("Version #"));
+	if (!versionNumber) return;
+	_alert("POST", `${BASE}/${_id()}/deployments`, {versionNumber});
+}
+
+function metrics() {
+	_alert("GET", `${BASE}/${_id()}/metrics`);
+}
+
+function versions() {
+	_alert("GET", `${BASE}/${_id()}/versions`);
+}
+
+function undeploy() {
+	var deployId = prompt("Deployment ID");
+	if (!deployId) return;
+	_alert("DELETE", `${BASE}/${_id()}/deployments/${deployId}`);
+}
+
 function search() {
 	_get(`${url}&title=${title.value || ""}`);
 }

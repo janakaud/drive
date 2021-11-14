@@ -164,8 +164,12 @@ function load() {
 			out += "<tr>";
 			for (let c = 0; c < w; c++) {
 				let orig = ((cells[r] || [])[c] || "").replaceAll("'", "&#39;");
-				let tag = orig.indexOf("\n") > 0 ? "textarea" : "input";
-				out += `<td><${tag} orig='${orig}' title='${String.fromCharCode(c + 65)}${r + 1}' value='${orig}'></${tag}></td>`;
+				let title = `title='${String.fromCharCode(c + 65)}${r + 1}'`;
+				if (orig.indexOf("\n") > 0) {
+					out += `<td><textarea orig='${orig}' ${title}>${orig}</textarea></td>`;
+				} else {
+					out += `<td><input orig='${orig}' ${title} value='${orig}'></input></td>`;
+				}
 			}
 			out += "</tr>";
 		}

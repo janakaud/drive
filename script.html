@@ -6,7 +6,8 @@
 </head>
 <body>
 <div>
-	<input id="user" placeholder="uid" size="1" maxlength="1"/>
+	<button onclick="reauth()">reauth</button>
+	<input id="user" placeholder="uid" value="0" size="1" maxlength="1"/>
 	<input id="title" placeholder="title"/>
 	<input id="parent" placeholder="parent"/>
 	<button onclick="search()" disabled>search</button>
@@ -14,7 +15,12 @@
 	<input id="id" placeholder="id/url"/>
 	<button onclick="load()">load</button>
 	<button onclick="save()">save</button>
+	<button onclick="run()" disabled>run</button>
+	<button onclick="deploy()">deploy</button>
+	<button onclick="metrics()">metrics</button>
+	<button onclick="versions()">versions</button>
 	<button onclick="listDeployments()">deployments</button>
+	<button onclick="undeploy()">undeploy</button>
 	<button onclick="listProcesses()">processes</button>
 	<label id="busy" style="display: none">wait...</label>
 </div>
