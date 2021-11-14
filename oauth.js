@@ -14,12 +14,14 @@ var end = data.indexOf("&", start);
 if (end < 0) {
 	end = data.length;
 }
-SCOPE = decodeURIComponent(data.substring(start + 6, end));
+// needed for store. queries
+APP = decodeURIComponent(data.substring(start + 6, end));
 
 var pos;
 
 if (!store.ClientId) {
 	store.ClientId = prompt("Enter GApp client ID");
+	if (!store.ClientId) throw new Error("Bad client ID");
 	store.ClientSecret = prompt("Enter GApp client secret");
 }
 
@@ -54,7 +56,7 @@ if ((pos = location.hash.indexOf("access_token=")) != -1) {		// token flow (not 
 		}, false, "application/x-www-form-urlencoded");
 	} else {	// init auth
 		location.href = "https://accounts.google.com/o/oauth2/v2/auth?scope=" + store.Scope + "&client_id=" +
-		store.ClientId + REDIRECT + "&state=" + SCOPE + "&response_type=code&access_type=offline&authuser=" + (store.User || 0);
+		store.ClientId + REDIRECT + "&state=" + APP + "&response_type=code&access_type=offline&authuser=" + (store.User || 0);
 	}
 
 } else {

@@ -1,4 +1,5 @@
-var SCOPE = "https://www.googleapis.com/auth/script.projects";
+var APP = "script";
+var SCOPE = "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments";
 
 var V1 = "https://script.googleapis.com/v1";
 var BASE = `${V1}/projects`;

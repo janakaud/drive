@@ -1,3 +1,4 @@
+var APP = "drive";
 var SCOPE = "https://www.googleapis.com/auth/drive"
 
 var host = "https://www.googleapis.com";

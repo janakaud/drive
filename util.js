@@ -7,25 +7,31 @@ var handler = {};
 "Token", "Expiry", "AuthCode"].forEach(function(key) {
 	handler[key] = {
 		get: function() {
-			return localStorage[SCOPE + " " + key];
+			return localStorage[`${APP}_${key}`];
 		},
 		set: function(value) {
-			localStorage[SCOPE + " " + key] = value;
+			localStorage[`${APP}_${key}`] = value;
 		}
 	};
 });
 handler.RefreshToken = {
 	get: function() {
-		return localStorage[`${SCOPE} RefreshToken ${store.User}`];
+		return localStorage[`${APP}_RefreshToken_${store.User}`];
 	},
 	set: function(value) {
-		localStorage[`${SCOPE} RefreshToken ${store.User}`] = value;
+		localStorage[`${APP}_RefreshToken_${store.User}`] = value;
 	}
 };
 Object.defineProperties(store, handler);
 
 function expired() {
 	return !store.Expiry || (Date.now() - store.Expiry >= 0) || store.User != user.value;
+}
+
+function reauth() {
+	store.Expiry = 0;
+	store.RefreshToken = "";
+	authorize(function() {alert("authorized")});
 }
 
 function authorize(callback) {
@@ -35,7 +41,7 @@ function authorize(callback) {
 	this.callback = callback;
 	store.Scope = SCOPE;
 	store.User = user.value;
-	window.open("oauth.html#state=" + SCOPE);
+	window.open("oauth.html#state=" + APP);
 }
 
 function callWithAuth(callback) {
